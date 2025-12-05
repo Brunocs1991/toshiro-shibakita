@@ -1,0 +1,104 @@
+version: '3.8'
+
+services:
+  # Banco de Dados MySQL
+  mysql:
+    image: mysql:8.0
+    container_name: toshiro-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: Senha123
+      MYSQL_DATABASE: meubanco
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./banco.sql:/docker-entrypoint-initdb.d/banco.sql
+    networks:
+      - toshiro-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Microsserviço PHP 1
+  app1:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: toshiro-app1
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      - DB_HOST=mysql
+      - DB_USER=root
+      - DB_PASSWORD=Senha123
+      - DB_NAME=meubanco
+    networks:
+      - toshiro-network
+    volumes:
+      - ./app:/var/www/html
+
+  # Microsserviço PHP 2
+  app2:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: toshiro-app2
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      - DB_HOST=mysql
+      - DB_USER=root
+      - DB_PASSWORD=Senha123
+      - DB_NAME=meubanco
+    networks:
+      - toshiro-network
+    volumes:
+      - ./app:/var/www/html
+
+  # Microsserviço PHP 3
+  app3:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: toshiro-app3
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      - DB_HOST=mysql
+      - DB_USER=root
+      - DB_PASSWORD=Senha123
+      - DB_NAME=meubanco
+    networks:
+      - toshiro-network
+    volumes:
+      - ./app:/var/www/html
+
+  # Load Balancer Nginx
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: toshiro-nginx
+    ports:
+      - "4500:4500"
+    depends_on:
+      - app1
+      - app2
+      - app3
+    networks:
+      - toshiro-network
+    volumes:
+      - ./app:/var/www/html
+
+volumes:
+  mysql_data:
+
+networks:
+  toshiro-network:
+    driver: bridge
+
